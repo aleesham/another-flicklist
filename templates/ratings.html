@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% if watchlist|length > 0 %}
+  <h2>My Watchlist</h2>
+  <ul>
+    {% for movie in watchlist: %}
+    <li>
+        <h3>{{movie}}</h3>
+        <form action="/rating-confirmation" method="post">
+            <input type="hidden" name="movie" value="{{ movie }}"/>
+            My Rating:
+            <select name="rating">
+                <!-- need to loop over watchlist to create option elements -->
+                {% for rating in ["How was it?", "*", "**", "***", "****", "*****"]: %}
+                    <option value="{{ rating }}">{{ rating }}</option>
+                {% endfor %}
+            </select>
+            <input type="submit" value="Rate It"/>
+        </form>
+    </li>
+    {% endfor %}
+  </ul>
+{% endif %}
+
+{% endblock %}
