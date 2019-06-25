@@ -16,8 +16,8 @@ terrible_movies = [
 
 def get_current_watchlist():
     # returns user's current watchlist--hard coded for now
-    return [ "Star Wars", "Minions", "Freaky Friday", "My Favorite Martian" ]
-
+    # return [ "Star Wars", "Minions", "Freaky Friday", "My Favorite Martian" ]
+    return []
 
 @app.route("/crossoff", methods=['POST'])
 def crossoff_movie():
@@ -55,7 +55,7 @@ def add_movie():
     # TODO:
     # Create a template called add-confirmation.html inside your /templates directory
     # Use that template to render the confirmation message instead of this temporary message below
-    return "Confirmation Message Under Construction..."
+    return render_template('add.html', added_movie = new_movie_escaped)
 
 # TODO:
 # Modify the edit.html file to display the watchlist in an unordered list with bullets in front of each movie.
