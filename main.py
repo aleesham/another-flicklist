@@ -1,11 +1,13 @@
-from flask import Flask, request, redirect, render_template
+from flask import Flask, request, redirect, render_template, session, flash
 from flask_sqlalchemy import SQLAlchemy
 import cgi
 
 app = Flask(__name__)
 app.config['DEBUG'] = True      # displays runtime errors in the browser, too
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:MyNewPass@localhost:8889/flicklist'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:flicklist@localhost:8889/flicklist'
 app.config['SQLALCHEMY_ECHO'] = True
+
+app.secret_key = 'randomsecretkey'
 
 db = SQLAlchemy(app)
 
@@ -22,6 +24,18 @@ class Movie(db.Model):
     def __repr__(self):
         return '<Movie %r>' % self.name
 
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120), unique=True)
+    password = db.Column(db.String(120))
+
+    def __init__(self, email, password):
+        self.email = email
+        self.password = password
+
+    def __repr__(self):
+        return '<User %r>' % self.email
+
 # a list of movie names that nobody should have to watch
 terrible_movies = [
     "Gigli",
@@ -36,6 +50,49 @@ def get_current_watchlist():
 
 def get_watched_movies():
     return Movie.query.filter_by(watched=True).all()
+
+def is_email(email):
+    at_index = email.find('@')
+    if at_index < 0:
+        return False
+    
+    dot_index = email.rfind('.')
+    if dot_index < at_index:
+        return False
+
+    return True
+
+@app.before_request
+def require_login():
+    print(request.endpoint)
+    if 'user' not in session and request.endpoint != "register":
+        return redirect('/register')
+
+@app.route("/register", methods = ["GET", "POST"])
+def register():
+    if request.method == "POST":
+        # if the user is not valid, redirect back to registration page
+        email = request.form['email']
+        password = request.form['password']
+
+        # I will just validate email, you do the rest
+        if not is_email(email):
+            flash("{} does not look like an email".format(email))
+            return redirect('/')
+        #else 
+        #Save the user and do soemthing confirming the user is logged in
+        user = User(email, password)
+        db.session.add(user)
+        db.session.commit()
+        session['user'] = user.email
+        return 'User is logged in'
+    return render_template('register.html')
+    
+
+@app.route('/logout', methods = ["POST"])
+def logout():
+    del session['user']
+    return redirect('/')
 
 # Create a new route called rate_movie which handles a POST request on /rating-confirmation
 @app.route("/rating-confirmation", methods=['POST'])
