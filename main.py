@@ -4,7 +4,7 @@ import cgi
 
 app = Flask(__name__)
 app.config['DEBUG'] = True      # displays runtime errors in the browser, too
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:MyNewPass@localhost:8889/flicklist'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:flicklist@localhost:8889/flicklist'
 app.config['SQLALCHEMY_ECHO'] = True
 
 db = SQLAlchemy(app)
@@ -50,6 +50,21 @@ def get_watched_movies():
     return Movie.query.filter_by(watched=True).all()
 
 # TODO 3: Add "/login" GET and POST routes.
+
+@app.route("/login", methods = ['GET', 'POST'])
+def login():
+    if request.method == "POST":
+        email = request.form['email']
+        password = request.form['password']
+        user = User.query.filter_by(email = email).first()
+
+        if not user or password != user.password:
+            flash("That email password combination does not exist")
+            return redirect('/login')
+
+        session['user'] = email ## session = { 'user': email }
+        return redirect('/')
+    return render_template('login.html')
 # TODO 4: Create login template with username and password.
 #         Notice that we've already created a 'login' link in the upper-right corner of the page that'll connect to it.
 
@@ -62,7 +77,17 @@ def register():
             flash('zoiks! "' + email + '" does not seem like an email address')
             return redirect('/register')
         # TODO 1: validate that form value of 'verify' matches password
+        verify = request.form['verify']
+        if password != verify:
+            flash("Passwords don't match")
+            return redirect('/register')
         # TODO 2: validate that there is no user with that email already
+        aUser = User.query.filter_by(email = email).first()
+
+        if aUser:
+            flash("User with this email already exists")
+            return redirect('/register')
+
         user = User(email=email, password=password)
         db.session.add(user)
         db.session.commit()
@@ -153,6 +178,9 @@ def add_movie():
 
 @app.route("/")
 def index():
+    print('\n\n\n')
+    print(session)
+    print('\n\n\n')
     encoded_error = request.args.get("error")
     return render_template('edit.html', watchlist=get_current_watchlist(), error=encoded_error and cgi.escape(encoded_error, quote=True))
 
@@ -160,7 +188,8 @@ def index():
 #         It should contain 'register' and 'login'.
 @app.before_request
 def require_login():
-    if not ('user' in session or request.endpoint == 'register'):
+    accepted_routes = ['register', 'login']
+    if not ('user' in session or request.endpoint in accepted_routes):
         return redirect("/register")
 
 # In a real application, this should be kept secret (i.e. not on github)
